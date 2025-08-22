@@ -1,0 +1,160 @@
+* {
+  cursor: none !important;
+}
+
+body {
+  margin: 0;
+  background-color: #000;
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+}
+
+.background-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+}
+
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  position: relative; 
+  display: flex;
+  align-items: center;
+  justify-content: center; 
+}
+
+.glass-card {
+  background: rgba(0, 10, 5, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 255, 149, 0.2);
+  border-radius: 12px;
+  padding: 25px 30px;
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  z-index: 10;
+}
+
+.input-container {
+  display: flex;
+  width: 100%;
+  border: 1px solid rgba(0, 255, 149, 0.6);
+  border-radius: 8px;
+  background: transparent;
+}
+
+.domain-input {
+  flex-grow: 1;
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 20px;
+  padding: 12px 15px;
+  font-family: 'Courier New', Courier, monospace;
+  text-align: left;
+}
+.domain-input:focus {
+  outline: none;
+}
+.domain-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.tld-selector {
+  display: flex;
+  background-color: #00ff95;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  overflow: hidden;
+  padding: 2px;
+}
+.tld-button {
+  background-color: transparent;
+  color: #000;
+  border: none;
+  padding: 10px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  font-size: 14px;
+  transition: background-color 0.2s, color 0.2s;
+}
+.tld-button.active {
+  background-color: #000;
+  color: #00ff95;
+}
+
+.status-message {
+  height: 20px;
+  font-size: 14px;
+  color: #ffffff;
+  text-align: center;
+}
+
+.buy-button {
+  background: transparent;
+  border: 1px solid rgba(0, 255, 149, 0.6);
+  color: #a7a7a7;
+  font-size: 20px;
+  letter-spacing: 2px;
+  padding: 12px 0;
+  width: 100%;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+.buy-button:hover:not(:disabled) {
+  color: #ffffff;
+  border-color: #00ff95;
+}
+.buy-button:disabled {
+  border-color: #333;
+  color: #555;
+}
+
+.connect-wallet-button {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  border: 1px solid #00ff95;
+  padding: 10px 20px;
+  font-size: 14px;
+  z-index: 10;
+  background: transparent;
+  color: #00ff95;
+}
+
+/* --- DISCONNECT FIX: Naya styling --- */
+.connected-wallet-info {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 255, 149, 0.1);
+  border: 1px solid #00ff95;
+  color: #ffffff;
+  padding: 5px 5px 5px 15px;
+  font-size: 14px;
+  z-index: 10;
+  border-radius: 5px;
+}
+
+.disconnect-button {
+  background: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  width: 25px;
+  height: 25px;
+  font-weight: bold;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 25px;
+  text-align: center;
+}
