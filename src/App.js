@@ -90,19 +90,19 @@ function MainUI() {
   return (
     <>
       {!userAddress ? ( 
-        <button onClick={connectWallet} className="connect-wallet-button cursor-target">
+        <button onClick={connectWallet} className="connect-wallet-button">
           Connect Wallet
         </button> 
       ) : ( 
         <div className="connected-wallet-info"> 
           <span>{userAddress}</span> 
-          <button onClick={disconnectWallet} className="disconnect-button cursor-target">
+          <button onClick={disconnectWallet} className="disconnect-button">
             X
           </button> 
         </div> 
       )}
       <div className="glass-card">
-        <div className="input-container cursor-target">
+        <div className="input-container">
           <input 
             type="text" 
             className="domain-input" 
@@ -126,7 +126,7 @@ function MainUI() {
         <div className="status-message">{message}</div>
         <button 
           onClick={handleBuy} 
-          className="buy-button cursor-target" 
+          className="buy-button" 
           disabled={!isAvailable}
         >
           BUY
@@ -139,34 +139,55 @@ function MainUI() {
 function App() {
   const videoRef = React.useRef(null);
   const [videoLoaded, setVideoLoaded] = React.useState(false);
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  // Mobile detection
+  React.useEffect(() => {
+    const checkMobile = () => {
+      const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+      setIsMobile(mobile);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   React.useEffect(() => {
     const video = videoRef.current;
     if (video) {
-      // Preload karne ke liye
       video.load();
       
       const handleCanPlay = () => {
         setVideoLoaded(true);
-        video.play().catch(error => {
-          console.log("Video autoplay failed:", error);
-          const handleFirstClick = () => {
-            video.play();
-            document.removeEventListener('click', handleFirstClick);
-          };
-          document.addEventListener('click', handleFirstClick);
-        });
+        const playVideo = async () => {
+          try {
+            await video.play();
+          } catch (error) {
+            console.log("Video autoplay failed:", error);
+            // Mobile devices often require user interaction for video play
+            if (isMobile) {
+              const handleFirstTouch = () => {
+                video.play();
+                document.removeEventListener('touchstart', handleFirstTouch);
+                document.removeEventListener('click', handleFirstTouch);
+              };
+              document.addEventListener('touchstart', handleFirstTouch);
+              document.addEventListener('click', handleFirstTouch);
+            }
+          }
+        };
+        playVideo();
       };
 
       video.addEventListener('canplay', handleCanPlay);
       return () => video.removeEventListener('canplay', handleCanPlay);
     }
-  }, []);
+  }, [isMobile]);
 
   return (
     <div className="app-container">
       <div className="background-container">
-        {/* Loading state ke liye fallback background */}
         {!videoLoaded && (
           <div style={{
             position: 'absolute',
@@ -196,18 +217,18 @@ function App() {
           onLoadedData={() => console.log("Video data loaded")}
           onCanPlay={() => console.log("Video can play")}
         >
-          {/* 🔥 CLOUDINARY CDN URL - PRIMARY SOURCE */}
           <source 
             src="https://res.cloudinary.com/ds44xcm9r/video/upload/v1755953889/terminal-bg_ihc94l.mp4" 
             type="video/mp4" 
           />
-          
-          {/* FALLBACK SOURCES - Agar Cloudinary fail ho jaye */}
           <source src="/terminal-bg.mp4" type="video/mp4" />
           <source src="./terminal-bg.mp4" type="video/mp4" />
         </video>
       </div>
-      <TargetCursor spinDuration={2} hideDefaultCursor={true} />
+      
+      {/* Desktop pe hi TargetCursor show karo */}
+      {!isMobile && <TargetCursor spinDuration={2} hideDefaultCursor={true} />}
+      
       <MainUI />
     </div>
   );
