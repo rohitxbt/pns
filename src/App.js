@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
+import terminalVideo from './terminal-bg.mp4';
 import TargetCursor from './TargetCursor';
 import './App.css';
 
