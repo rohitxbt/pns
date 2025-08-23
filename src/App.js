@@ -160,11 +160,32 @@ function MainUI() {
 
         const fullDomain = domainName + selectedTld; 
         setMessage(`Registering '${fullDomain}'...`); 
-        const registrationCost = ethers.parseEther("0.01"); 
-        const tx = await contract.register(fullDomain, { value: registrationCost }); 
-        await tx.wait(); 
-        setMessage(`Success! '${fullDomain}' is yours.`); 
-        setIsAvailable(false);
+        
+        // Get user address for sponsored registration
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const userAddress = await signer.getAddress();
+        
+        // Call backend API for sponsored registration
+        const response = await fetch('/api/sponsor-registration', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            domainName: fullDomain,
+            userAddress: userAddress
+          })
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          setMessage(`Success! '${fullDomain}' is yours.`);
+          setIsAvailable(false);
+        } else {
+          setMessage("Registration failed. Please try again.");
+        }
+        
       } catch (error) {
         console.error("Registration failed:", error);
         setMessage("Registration failed. Please try again.");
