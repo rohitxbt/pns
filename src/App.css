@@ -2,6 +2,13 @@
   cursor: none !important;
 }
 
+/* Mobile devices ke liye cursor reset */
+@media (max-width: 768px) {
+  * {
+    cursor: auto !important;
+  }
+}
+
 body {
   margin: 0;
   background-color: #000;
@@ -18,16 +25,13 @@ body {
   z-index: -1;
 }
 
-/* Video optimization ke liye */
 .background-container video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  /* Hardware acceleration enable karo */
   transform: translateZ(0);
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  /* Performance boost */
   will-change: opacity;
 }
 
@@ -38,9 +42,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center; 
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-/* Glass card effects */
 .glass-card {
   background: rgba(0, 10, 5, 0.5);
   backdrop-filter: blur(10px);
@@ -48,15 +53,29 @@ body {
   border: 1px solid rgba(0, 255, 149, 0.2);
   border-radius: 12px;
   padding: 25px 30px;
-  width: 420px;
+  width: 100%;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
   z-index: 10;
-  /* Performance optimization */
   will-change: backdrop-filter;
   transform: translateZ(0);
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 15px;
+  }
+  
+  .glass-card {
+    padding: 20px;
+    width: 95%;
+    max-width: 350px;
+    gap: 15px;
+  }
 }
 
 .input-container {
@@ -77,6 +96,15 @@ body {
   font-family: 'Courier New', Courier, monospace;
   text-align: left;
 }
+
+/* Mobile input optimization */
+@media (max-width: 768px) {
+  .domain-input {
+    font-size: 16px; /* iOS zoom prevention */
+    padding: 15px; /* Better touch target */
+  }
+}
+
 .domain-input:focus {
   outline: none;
 }
@@ -92,6 +120,7 @@ body {
   overflow: hidden;
   padding: 2px;
 }
+
 .tld-button {
   background-color: transparent;
   color: #000;
@@ -101,7 +130,17 @@ body {
   font-weight: bold;
   font-size: 14px;
   transition: background-color 0.2s, color 0.2s;
+  cursor: pointer;
 }
+
+/* Mobile touch optimization */
+@media (max-width: 768px) {
+  .tld-button {
+    padding: 15px 12px; /* Better touch target */
+    min-width: 50px;
+  }
+}
+
 .tld-button.active {
   background-color: #000;
   color: #00ff95;
@@ -114,6 +153,15 @@ body {
   text-align: center;
 }
 
+/* Mobile status message */
+@media (max-width: 768px) {
+  .status-message {
+    font-size: 12px;
+    min-height: 20px;
+    line-height: 1.3;
+  }
+}
+
 .buy-button {
   background: transparent;
   border: 1px solid rgba(0, 255, 149, 0.6);
@@ -124,11 +172,32 @@ body {
   width: 100%;
   border-radius: 8px;
   transition: all 0.3s;
+  cursor: pointer;
 }
+
+/* Mobile buy button */
+@media (max-width: 768px) {
+  .buy-button {
+    font-size: 18px;
+    padding: 15px 0; /* Better touch target */
+    letter-spacing: 1px;
+  }
+}
+
 .buy-button:hover:not(:disabled) {
   color: #ffffff;
   border-color: #00ff95;
 }
+
+/* Mobile touch states */
+@media (max-width: 768px) {
+  .buy-button:active:not(:disabled) {
+    color: #ffffff;
+    border-color: #00ff95;
+    transform: scale(0.98);
+  }
+}
+
 .buy-button:disabled {
   border-color: #333;
   color: #555;
@@ -144,6 +213,19 @@ body {
   z-index: 10;
   background: transparent;
   color: #00ff95;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+/* Mobile wallet button */
+@media (max-width: 768px) {
+  .connect-wallet-button {
+    top: 20px;
+    right: 20px;
+    padding: 12px 16px;
+    font-size: 12px;
+    min-height: 40px; /* Better touch target */
+  }
 }
 
 .connected-wallet-info {
@@ -162,6 +244,17 @@ body {
   border-radius: 5px;
 }
 
+/* Mobile wallet info */
+@media (max-width: 768px) {
+  .connected-wallet-info {
+    top: 20px;
+    right: 20px;
+    font-size: 12px;
+    padding: 8px 8px 8px 12px;
+    gap: 8px;
+  }
+}
+
 .disconnect-button {
   background: #ff4757;
   color: white;
@@ -173,14 +266,41 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   line-height: 25px;
   text-align: center;
+  cursor: pointer;
 }
 
-/* Loading animation for better UX */
-@keyframes pulse {
-  0%, 100% { opacity: 0.8; }
-  50% { opacity: 1; }
+/* Mobile disconnect button */
+@media (max-width: 768px) {
+  .disconnect-button {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    font-size: 14px;
+  }
 }
 
-.loading-background {
-  animation: pulse 2s ease-in-out infinite;
+/* Mobile specific improvements */
+@media (max-width: 768px) {
+  /* Prevent zoom on input focus */
+  input[type="text"] {
+    font-size: 16px;
+  }
+  
+  /* Better touch scrolling */
+  .app-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+  
+  /* Remove cursor animations on mobile */
+  .cursor-target {
+    /* No special cursor styling needed on mobile */
+  }
+}
+
+/* Tablet specific */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .glass-card {
+    max-width: 380px;
+  }
 }
