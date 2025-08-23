@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-// import terminalVideo from './terminal-bg.mp4'; // <<< YEH LINE HATA DI GAYI HAI, KYUNKI FILE PUBLIC MEIN HAI
 import TargetCursor from './TargetCursor';
 import './App.css';
 
@@ -18,9 +17,31 @@ function MainUI() {
   
   const connectWallet = async () => { if (typeof window.ethereum !== 'undefined') { try { await window.ethereum.request({ method: 'eth_requestAccounts' }); const provider = new ethers.BrowserProvider(window.ethereum); const signer = await provider.getSigner(); const address = await signer.getAddress(); const connectedContract = new ethers.Contract(contractAddress, contractABI, signer); setUserAddress(`${address.substring(0, 6)}...${address.substring(address.length - 4)}`); setContract(connectedContract); setMessage("Enter a domain name to check."); } catch (error) { console.error("Wallet Connection Error:", error); setMessage("Wallet connection failed."); } } else { setMessage("MetaMask is not installed."); } };
   const disconnectWallet = () => { setUserAddress(null); setContract(null); setDomainName(""); setIsAvailable(false); setMessage("Wallet disconnected."); };
-  const checkAvailability = useCallback(async (name) => { if (contract && name) { try {const fullDomain = name + selectedTld; setMessage(`Checking '${fullDomain}'...`); setIsAvailable(false); const ownerAddress = await contract.nameToOwner(fullDomain); if (ownerAddress === ethers.ZeroAddress) { setMessage(`'${fullDomain}' is available!`); setIsAvailable(true); } else { setMessage(`'${fullDomain}' is already taken.`); setIsAvailable(false); } } catch (e){ setMessage("Wrong network. Please use Sepolia."); console.error(e) }} }, [contract, selectedTld]);
+  
+  // <<< YEH HAI FINAL FIX >>>
+  const checkAvailability = useCallback(async (nameToCheck) => { 
+    if (contract && nameToCheck) { 
+      try {
+        const fullDomain = nameToCheck + selectedTld;
+        setMessage(`Checking '${fullDomain}'...`);
+        setIsAvailable(false);
+        const ownerAddress = await contract.nameToOwner(fullDomain);
+        if (ownerAddress === ethers.ZeroAddress) {
+          setMessage(`'${fullDomain}' is available!`);
+          setIsAvailable(true);
+        } else {
+          setMessage(`'${fullDomain}' is already taken.`);
+          setIsAvailable(false);
+        }
+      } catch (e) {
+        setMessage("Wrong network. Please use Sepolia.");
+        console.error(e)
+      }
+    }
+  }, [contract, selectedTld]);
+
   useEffect(() => { const handler = setTimeout(() => { if (domainName.length > 2) { checkAvailability(domainName); } else { setIsAvailable(false); if(userAddress) setMessage("Enter a domain name to check."); } }, 500); return () => clearTimeout(handler); }, [domainName, checkAvailability, userAddress]);
-  const handleBuy = async () => { if (contract && isAvailable) { const fullDomain = name + selectedTld; setMessage(`Registering '${fullDomain}'...`); const registrationCost = ethers.parseEther("0.01"); const tx = await contract.register(fullDomain, { value: registrationCost }); await tx.wait(); setMessage(`Success! '${fullDomain}' is yours.`); setIsAvailable(false); } };
+  const handleBuy = async () => { if (contract && isAvailable) { const fullDomain = domainName + selectedTld; setMessage(`Registering '${fullDomain}'...`); const registrationCost = ethers.parseEther("0.01"); const tx = await contract.register(fullDomain, { value: registrationCost }); await tx.wait(); setMessage(`Success! '${fullDomain}' is yours.`); setIsAvailable(false); } };
 
   return (
     <>
@@ -44,7 +65,6 @@ function App() {
     <div className="app-container">
       <div className="background-container">
         <video autoPlay loop muted playsInline >
-          {/* <<< SAHI TAREEKA. "/" ka matlab hai public folder se file uthao >>> */}
           <source src="/terminal-bg.mp4" type="video/mp4" />
         </video>
       </div>
