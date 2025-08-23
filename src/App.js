@@ -6,6 +6,19 @@ import './App.css';
 const contractAddress = "0x40Fe1d26E9D6BD3aE5641e4a6e81dF66Ab49326b";
 const contractABI = [ { "inputs": [], "stateMutability": "nonpayable", "type": "constructor" }, { "anonymous": false, "inputs": [ { "indexed": true, "internalType": "address", "name": "from", "type": "address" }, { "indexed": true, "internalType": "address", "name": "to", "type": "address" }, { "indexed": false, "internalType": "string", "name": "name", "type": "string" } ], "name": "Transfer", "type": "event" }, { "inputs": [], "name": "COST_TO_REGISTER", "outputs": [ { "internalType": "uint256", "name": "", "type": "uint256" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "string", "name": "", "type": "string" } ], "name": "nameToOwner", "outputs": [ { "internalType": "address", "name": "", "type": "address" } ], "stateMutability": "view", "type": "function" }, { "inputs": [], "name": "owner", "outputs": [ { "internalType": "address", "name": "", "type": "address" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "address", "name": "", "type": "address" } ], "name": "ownerToName", "outputs": [ { "internalType": "string", "name": "", "type": "string" } ], "stateMutability": "view", "type": "function" }, { "inputs": [ { "internalType": "string", "name": "_name", "type": "string" } ], "name": "register", "outputs": [], "stateMutability": "payable", "type": "function" }, { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" } ];
 
+// Plasma Testnet configuration
+const PLASMA_TESTNET = {
+  chainId: '0x2612', // 9746 in hex
+  chainName: 'Plasma Testnet',
+  nativeCurrency: {
+    name: 'XPL',
+    symbol: 'XPL',
+    decimals: 18,
+  },
+  rpcUrls: ['https://testnet-rpc.plasma.to'],
+  blockExplorerUrls: ['https://testnet.plasmascan.to'],
+};
+
 function MainUI() {
   const [contract, setContract] = useState(null);
   const [userAddress, setUserAddress] = useState(null);
@@ -14,9 +27,61 @@ function MainUI() {
   const [isAvailable, setIsAvailable] = useState(false);
   const [selectedTld, setSelectedTld] = useState(".xpl");
   
+  const addPlasmaNetwork = async () => {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [PLASMA_TESTNET],
+      });
+      return true;
+    } catch (error) {
+      console.error('Failed to add Plasma network:', error);
+      return false;
+    }
+  };
+
+  const switchToPlasma = async () => {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: PLASMA_TESTNET.chainId }],
+      });
+      return true;
+    } catch (error) {
+      if (error.code === 4902) {
+        // Network not added, try to add it
+        return await addPlasmaNetwork();
+      }
+      console.error('Failed to switch to Plasma network:', error);
+      return false;
+    }
+  };
+
+  const checkNetwork = async () => {
+    try {
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      return chainId === PLASMA_TESTNET.chainId;
+    } catch (error) {
+      console.error('Failed to check network:', error);
+      return false;
+    }
+  };
+
   const connectWallet = async () => { 
     if (typeof window.ethereum !== 'undefined') { 
       try { 
+        // First check if we're on the right network
+        const isOnPlasma = await checkNetwork();
+        
+        if (!isOnPlasma) {
+          setMessage("Switching to Plasma Testnet...");
+          const switched = await switchToPlasma();
+          if (!switched) {
+            setMessage("Please switch to Plasma Testnet manually.");
+            return;
+          }
+        }
+
         await window.ethereum.request({ method: 'eth_requestAccounts' }); 
         const provider = new ethers.BrowserProvider(window.ethereum); 
         const signer = await provider.getSigner(); 
@@ -45,6 +110,14 @@ function MainUI() {
   const checkAvailability = useCallback(async (nameToCheck) => { 
     if (contract && nameToCheck) { 
       try {
+        // First check if we're still on the right network
+        const isOnPlasma = await checkNetwork();
+        if (!isOnPlasma) {
+          setMessage("Please switch to Plasma Testnet.");
+          setIsAvailable(false);
+          return;
+        }
+
         const fullDomain = nameToCheck + selectedTld;
         setMessage(`Checking '${fullDomain}'...`);
         setIsAvailable(false);
@@ -57,7 +130,7 @@ function MainUI() {
           setIsAvailable(false);
         }
       } catch (e) {
-        setMessage("Wrong network. Please use Sepolia.");
+        setMessage("Wrong network. Please use Plasma Testnet.");
         console.error(e)
       }
     }
@@ -77,13 +150,25 @@ function MainUI() {
 
   const handleBuy = async () => { 
     if (contract && isAvailable) { 
-      const fullDomain = domainName + selectedTld; 
-      setMessage(`Registering '${fullDomain}'...`); 
-      const registrationCost = ethers.parseEther("0.01"); 
-      const tx = await contract.register(fullDomain, { value: registrationCost }); 
-      await tx.wait(); 
-      setMessage(`Success! '${fullDomain}' is yours.`); 
-      setIsAvailable(false); 
+      try {
+        // Double check network before transaction
+        const isOnPlasma = await checkNetwork();
+        if (!isOnPlasma) {
+          setMessage("Please switch to Plasma Testnet.");
+          return;
+        }
+
+        const fullDomain = domainName + selectedTld; 
+        setMessage(`Registering '${fullDomain}'...`); 
+        const registrationCost = ethers.parseEther("0.01"); 
+        const tx = await contract.register(fullDomain, { value: registrationCost }); 
+        await tx.wait(); 
+        setMessage(`Success! '${fullDomain}' is yours.`); 
+        setIsAvailable(false);
+      } catch (error) {
+        console.error("Registration failed:", error);
+        setMessage("Registration failed. Please try again.");
+      }
     } 
   };
 
