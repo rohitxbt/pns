@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import FaultyTerminal from './FaultyTerminal';
+import terminalVideo from './terminal-bg.mp4';
 import TargetCursor from './TargetCursor';
 import './App.css';
 
@@ -18,8 +18,7 @@ function MainUI() {
   const [message, setMessage] = useState("Connect wallet to begin.");
   const [isAvailable, setIsAvailable] = useState(false);
   const [selectedTld, setSelectedTld] = useState(".xpl");
-
-  // Saara wallet aur logic bilkul aayaz hai, ismein koi change nahi
+  
   const connectWallet = async () => { if (typeof window.ethereum !== 'undefined') { try { await window.ethereum.request({ method: 'eth_requestAccounts' }); const provider = new ethers.BrowserProvider(window.ethereum); const signer = await provider.getSigner(); const address = await signer.getAddress(); const connectedContract = new ethers.Contract(contractAddress, contractABI, signer); setUserAddress(`${address.substring(0, 6)}...${address.substring(address.length - 4)}`); setContract(connectedContract); setMessage("Enter a domain name to check."); } catch (error) { console.error("Wallet Connection Error:", error); setMessage("Wallet connection failed."); } } else { setMessage("MetaMask is not installed."); } };
   const disconnectWallet = () => { setUserAddress(null); setContract(null); setDomainName(""); setIsAvailable(false); setMessage("Wallet disconnected."); };
   const checkAvailability = useCallback(async (name) => { if (contract && name) { const fullDomain = name + selectedTld; setMessage(`Checking '${fullDomain}'...`); setIsAvailable(false); const ownerAddress = await contract.nameToOwner(fullDomain); if (ownerAddress === ethers.ZeroAddress) { setMessage(`'${fullDomain}' is available!`); setIsAvailable(true); } else { setMessage(`'${fullDomain}' is already taken.`); setIsAvailable(false); } } }, [contract, selectedTld]);
@@ -47,7 +46,6 @@ function MainUI() {
             disabled={!userAddress}
           />
           <div className="tld-selector">
-      
             {['.xpl'].map(tld => (
               <button key={tld} className={`tld-button ${selectedTld === tld ? 'active' : ''}`} onClick={() => setSelectedTld(tld)}>{tld}</button>
             ))}
@@ -60,30 +58,20 @@ function MainUI() {
   );
 }
 
+// AAPKA ORIGINAL App Component - Sirf FaultyTerminal badla hai
 function App() {
   return (
     <div className="app-container">
       <div className="background-container">
-        {/* --- FIX 2: Yeh performance ke liye optimized settings hain --- */}
-        <FaultyTerminal 
-          scale={1.2}
-          gridMul={[1.5, 0.8]}
-          digitSize={1.0}
-          scanlineIntensity={0.8}
-          tint="#164a21"
-          timeScale={1}
-          pause={false}
-          glitchAmount={1}
-          flickerAmount={1}
-          noiseAmp={1}
-          chromaticAberration={0}
-          dither={0}
-          curvature={0}
-          mouseReact={true}
-          mouseStrength={0.5}
-          pageLoadAnimation={false}
-          brightness={1}
-        />
+        {/* --- YAHAN PAR FAULTYTERMINAL KI JAGAH VIDEO LAGA DIYA GAYA HAI --- */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+        >
+          <source src={terminalVideo} type="video/mp4" />
+        </video>
       </div>
       <TargetCursor spinDuration={2} hideDefaultCursor={true} />
       <MainUI />
