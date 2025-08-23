@@ -2,10 +2,15 @@
   cursor: none !important;
 }
 
-/* Mobile devices ke liye cursor reset */
+/* Mobile devices ke liye cursor reset - but keep cursor-target classes working */
 @media (max-width: 768px) {
   * {
     cursor: auto !important;
+  }
+  
+  /* Mobile par cursor-target elements ko normal cursor do */
+  .cursor-target {
+    cursor: pointer !important;
   }
 }
 
@@ -292,9 +297,9 @@ body {
     overflow-y: auto;
   }
   
-  /* Remove cursor animations on mobile */
+  /* Mobile par cursor-target elements normal pointer cursor */
   .cursor-target {
-    /* No special cursor styling needed on mobile */
+    cursor: pointer !important;
   }
 }
 
