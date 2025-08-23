@@ -196,6 +196,13 @@ function App() {
           onLoadedData={() => console.log("Video data loaded")}
           onCanPlay={() => console.log("Video can play")}
         >
+          {/* 🔥 CLOUDINARY CDN URL - PRIMARY SOURCE */}
+          <source 
+            src="https://res.cloudinary.com/ds44xcm9r/video/upload/v1755953889/terminal-bg_ihc94l.mp4" 
+            type="video/mp4" 
+          />
+          
+          {/* FALLBACK SOURCES - Agar Cloudinary fail ho jaye */}
           <source src="/terminal-bg.mp4" type="video/mp4" />
           <source src="./terminal-bg.mp4" type="video/mp4" />
         </video>
