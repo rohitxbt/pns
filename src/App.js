@@ -90,19 +90,19 @@ function MainUI() {
   return (
     <>
       {!userAddress ? ( 
-        <button onClick={connectWallet} className="connect-wallet-button">
+        <button onClick={connectWallet} className="connect-wallet-button cursor-target">
           Connect Wallet
         </button> 
       ) : ( 
         <div className="connected-wallet-info"> 
           <span>{userAddress}</span> 
-          <button onClick={disconnectWallet} className="disconnect-button">
+          <button onClick={disconnectWallet} className="disconnect-button cursor-target">
             X
           </button> 
         </div> 
       )}
       <div className="glass-card">
-        <div className="input-container">
+        <div className="input-container cursor-target">
           <input 
             type="text" 
             className="domain-input" 
@@ -115,7 +115,7 @@ function MainUI() {
             {['.xpl'].map(tld => ( 
               <button 
                 key={tld} 
-                className={`tld-button ${selectedTld === tld ? 'active' : ''}`} 
+                className={`tld-button cursor-target ${selectedTld === tld ? 'active' : ''}`} 
                 onClick={() => setSelectedTld(tld)}
               >
                 {tld}
@@ -126,7 +126,7 @@ function MainUI() {
         <div className="status-message">{message}</div>
         <button 
           onClick={handleBuy} 
-          className="buy-button" 
+          className="buy-button cursor-target" 
           disabled={!isAvailable}
         >
           BUY
