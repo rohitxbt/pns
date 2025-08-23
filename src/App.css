@@ -18,11 +18,17 @@ body {
   z-index: -1;
 }
 
-/* <<< SIRF YEH CODE ADD KIYA GAYA HAI >>> */
+/* Video optimization ke liye */
 .background-container video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  /* Hardware acceleration enable karo */
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  /* Performance boost */
+  will-change: opacity;
 }
 
 .app-container {
@@ -34,7 +40,7 @@ body {
   justify-content: center; 
 }
 
-/* Baaki ka saara CSS bilkul waisa hi hai, usmein koi change nahi */
+/* Glass card effects */
 .glass-card {
   background: rgba(0, 10, 5, 0.5);
   backdrop-filter: blur(10px);
@@ -48,6 +54,9 @@ body {
   align-items: center;
   gap: 20px;
   z-index: 10;
+  /* Performance optimization */
+  will-change: backdrop-filter;
+  transform: translateZ(0);
 }
 
 .input-container {
@@ -164,4 +173,14 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   line-height: 25px;
   text-align: center;
+}
+
+/* Loading animation for better UX */
+@keyframes pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.loading-background {
+  animation: pulse 2s ease-in-out infinite;
 }
