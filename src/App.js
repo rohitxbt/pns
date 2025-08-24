@@ -280,47 +280,52 @@ function MainUI() {
   }, [domainName, checkAvailability, userAddress]);
 
   const handleBuy = async () => { 
-    if (contract && isAvailable) { 
-      try {
-        // Double check network before transaction
-        const isOnPlasma = await checkNetwork();
-        if (!isOnPlasma) {
-          setMessage("Please switch to Plasma Testnet.");
-          return;
-        }
+  if (contract && isAvailable) { 
+    try {
+      // Double check network before transaction
+      const isOnPlasma = await checkNetwork();
+      if (!isOnPlasma) {
+        setMessage("Please switch to Plasma Testnet.");
+        return;
+      }
 
-        const fullDomain = domainName + selectedTld; 
-        setMessage(`Registering '${fullDomain}'...`); 
-        
-        // Get user address for sponsored registration
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-        const userAddress = await signer.getAddress();
-        
-        // Call backend API for sponsored registration
-        const response = await fetch('https://plasma-sponsor-7jbisi2ka-rohit0x-s-projects.vercel.app/api/sponsor-registration', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            domainName: fullDomain,
-            userAddress: userAddress
-          })
-        });
-        
-        if (response.ok) {
-  const result = await response.json();
-  setMessage(
-    `✅ Success! '${fullDomain}' is yours.\nTx Hash: ${result.txHash}`
-  );
-  setIsAvailable(false);
-} else {
-  setMessage("❌ Registration failed. Please try again.");
-}
-    } 
-  };
+      const fullDomain = domainName + selectedTld; 
+      setMessage(`Registering '${fullDomain}'...`); 
+      
+      // Get user address for sponsored registration
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const userAddress = await signer.getAddress();
+      
+      // Call backend API for sponsored registration
+      const response = await fetch("https://plasma-sponsor-7jbisi2ka-rohit0x-s-projects.vercel.app/api/sponsor-registration", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          domainName: fullDomain,
+          userAddress: userAddress
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setMessage(
+          `✅ Success! '${fullDomain}' is yours.\n` +
+          `🔗 Explorer: https://testnet.plasmascan.to/tx/${result.txHash}`
+        );
+        setIsAvailable(false);
+      } else {
+        setMessage("❌ Registration failed. Please try again.");
+      }
 
+    } catch (error) {
+      console.error("Registration failed:", error);
+      setMessage("❌ Registration failed. Please try again.");
+    }
+  } 
+};
   return (
     <>
       {!userAddress ? ( 
