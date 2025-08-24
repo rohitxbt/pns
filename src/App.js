@@ -310,17 +310,14 @@ function MainUI() {
         });
         
         if (response.ok) {
-          const result = await response.json();
-          setMessage(`Success! '${fullDomain}' is yours.`);
-          setIsAvailable(false);
-        } else {
-          setMessage("Registration failed. Please try again.");
-        }
-        
-      } catch (error) {
-        console.error("Registration failed:", error);
-        setMessage("Registration failed. Please try again.");
-      }
+  const result = await response.json();
+  setMessage(
+    `✅ Success! '${fullDomain}' is yours.\nTx Hash: ${result.txHash}`
+  );
+  setIsAvailable(false);
+} else {
+  setMessage("❌ Registration failed. Please try again.");
+}
     } 
   };
 
