@@ -312,8 +312,7 @@ function MainUI() {
       if (response.ok) {
         const result = await response.json();
         setMessage(
-          `✅ Success! '${fullDomain}' is yours.\n` +
-          `🔗 Explorer: https://testnet.plasmascan.to/tx/${result.txHash}`
+          `✅ Success! '${fullDomain}' is yours.\nTx Hash: ${result.txHash}`
         );
         setIsAvailable(false);
       } else {
