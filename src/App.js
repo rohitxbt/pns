@@ -158,6 +158,12 @@ function MainUI() {
   const [isAvailable, setIsAvailable] = useState(false);
   const [selectedTld, setSelectedTld] = useState(".xpl");
   
+  // Search feature states
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchDomain, setSearchDomain] = useState("");
+  const [searchResult, setSearchResult] = useState("");
+  const [searchSelectedTld, setSearchSelectedTld] = useState(".xpl");
+  
   const addPlasmaNetwork = async () => {
     try {
       await window.ethereum.request({
@@ -236,6 +242,9 @@ function MainUI() {
     setDomainName(""); 
     setIsAvailable(false); 
     setMessage("Wallet disconnected."); 
+    setIsSearchMode(false);
+    setSearchResult("");
+    setSearchDomain("");
   };
   
   const checkAvailability = useCallback(async (nameToCheck) => { 
@@ -267,17 +276,55 @@ function MainUI() {
     }
   }, [contract, selectedTld]);
 
+  // Search domain function
+  const searchDomainOwner = useCallback(async (domainToSearch) => {
+    if (contract && domainToSearch) {
+      try {
+        const isOnPlasma = await checkNetwork();
+        if (!isOnPlasma) {
+          setSearchResult("Please switch to Plasma Testnet.");
+          return;
+        }
+
+        const fullDomain = domainToSearch + searchSelectedTld;
+        setSearchResult(`Searching '${fullDomain}'...`);
+        
+        const ownerAddress = await contract.nameToOwner(fullDomain);
+        if (ownerAddress === ethers.ZeroAddress) {
+          setSearchResult(`'${fullDomain}' is not registered yet.`);
+        } else {
+          setSearchResult(`'${fullDomain}' is owned by: ${ownerAddress}`);
+        }
+      } catch (e) {
+        setSearchResult("Error searching domain. Please check network.");
+        console.error(e);
+      }
+    }
+  }, [contract, searchSelectedTld]);
+
   useEffect(() => { 
     const handler = setTimeout(() => { 
-      if (domainName.length > 2) { 
+      if (!isSearchMode && domainName.length > 2) { 
         checkAvailability(domainName); 
-      } else { 
+      } else if (!isSearchMode) { 
         setIsAvailable(false); 
         if(userAddress) setMessage("Enter a domain name to check."); 
       } 
     }, 500); 
     return () => clearTimeout(handler); 
-  }, [domainName, checkAvailability, userAddress]);
+  }, [domainName, checkAvailability, userAddress, isSearchMode]);
+
+  // Search effect
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (isSearchMode && searchDomain.length > 2) {
+        searchDomainOwner(searchDomain);
+      } else if (isSearchMode && searchDomain.length <= 2) {
+        setSearchResult("Enter domain name to search...");
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchDomain, searchDomainOwner, isSearchMode]);
 
   const handleBuy = async () => { 
   if (contract && isAvailable) { 
@@ -325,6 +372,17 @@ function MainUI() {
     }
   } 
 };
+
+  const toggleSearchMode = () => {
+    setIsSearchMode(!isSearchMode);
+    if (!isSearchMode) {
+      setSearchDomain("");
+      setSearchResult("Enter domain name to search...");
+    } else {
+      setMessage("Enter a domain name to check.");
+    }
+  };
+
   return (
     <>
       {!userAddress ? ( 
@@ -339,36 +397,68 @@ function MainUI() {
           </button> 
         </div> 
       )}
+
+      {/* Search/Register Toggle */}
+      {userAddress && (
+        <div className="mode-toggle">
+          <button 
+            onClick={toggleSearchMode} 
+            className={`mode-button cursor-target ${isSearchMode ? 'search-mode' : 'register-mode'}`}
+          >
+            {isSearchMode ? 'REGISTER MODE' : 'SEARCH MODE'}
+          </button>
+        </div>
+      )}
+
       <div className="glass-card">
         <div className="input-container cursor-target">
           <input 
             type="text" 
             className="domain-input" 
-            placeholder="domain" 
-            value={domainName} 
-            onChange={(e) => setDomainName(e.target.value.toLowerCase())} 
+            placeholder={isSearchMode ? "search domain" : "domain"} 
+            value={isSearchMode ? searchDomain : domainName} 
+            onChange={(e) => {
+              const value = e.target.value.toLowerCase();
+              if (isSearchMode) {
+                setSearchDomain(value);
+              } else {
+                setDomainName(value);
+              }
+            }} 
             disabled={!userAddress} 
           />
           <div className="tld-selector">
             {['.xpl'].map(tld => ( 
               <button 
                 key={tld} 
-                className={`tld-button cursor-target ${selectedTld === tld ? 'active' : ''}`} 
-                onClick={() => setSelectedTld(tld)}
+                className={`tld-button cursor-target ${(isSearchMode ? searchSelectedTld : selectedTld) === tld ? 'active' : ''}`} 
+                onClick={() => {
+                  if (isSearchMode) {
+                    setSearchSelectedTld(tld);
+                  } else {
+                    setSelectedTld(tld);
+                  }
+                }}
               >
                 {tld}
               </button>
             ))}
           </div>
         </div>
-        <div className="status-message">{message}</div>
-        <button 
-          onClick={handleBuy} 
-          className="buy-button cursor-target" 
-          disabled={!isAvailable}
-        >
-          BUY
-        </button>
+        
+        <div className="status-message">
+          {isSearchMode ? searchResult : message}
+        </div>
+        
+        {!isSearchMode && (
+          <button 
+            onClick={handleBuy} 
+            className="buy-button cursor-target" 
+            disabled={!isAvailable}
+          >
+            BUY
+          </button>
+        )}
       </div>
     </>
   );
