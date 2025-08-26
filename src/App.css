@@ -285,4 +285,272 @@ body {
   }
 }
 
-.input
+.input-container {
+  display: flex;
+  width: 100%;
+  border: 1px solid rgba(0, 255, 149, 0.6);
+  border-radius: 8px;
+  background: transparent;
+}
+
+.domain-input {
+  flex-grow: 1;
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 20px;
+  padding: 12px 15px;
+  font-family: 'Courier New', Courier, monospace;
+  text-align: left;
+}
+
+/* Mobile input optimization */
+@media (max-width: 768px) {
+  .domain-input {
+    font-size: 16px; /* iOS zoom prevention */
+    padding: 15px; /* Better touch target */
+  }
+}
+
+.domain-input:focus {
+  outline: none;
+}
+.domain-input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.tld-selector {
+  display: flex;
+  background-color: #00ff95;
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  overflow: hidden;
+  padding: 2px;
+}
+
+.tld-button {
+  background-color: transparent;
+  color: #000;
+  border: none;
+  padding: 10px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+  font-size: 14px;
+  transition: background-color 0.2s, color 0.2s;
+  cursor: pointer;
+}
+
+/* Mobile touch optimization */
+@media (max-width: 768px) {
+  .tld-button {
+    padding: 15px 12px; /* Better touch target */
+    min-width: 50px;
+  }
+}
+
+.tld-button.active {
+  background-color: #000;
+  color: #00ff95;
+}
+
+.status-message {
+  height: 20px;
+  font-size: 14px;
+  color: #ffffff;
+  text-align: center;
+  word-break: break-all;
+  line-height: 1.4;
+  max-height: 60px;
+  overflow-y: auto;
+  padding: 5px 0;
+}
+
+/* Mobile status message */
+@media (max-width: 768px) {
+  .status-message {
+    font-size: 12px;
+    min-height: 20px;
+    line-height: 1.3;
+    max-height: 80px;
+  }
+}
+
+.buy-button {
+  background: transparent;
+  border: 1px solid rgba(0, 255, 149, 0.6);
+  color: #a7a7a7;
+  font-size: 20px;
+  letter-spacing: 2px;
+  padding: 12px 0;
+  width: 100%;
+  border-radius: 8px;
+  transition: all 0.3s;
+  cursor: pointer;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+}
+
+/* Mobile buy button */
+@media (max-width: 768px) {
+  .buy-button {
+    font-size: 18px;
+    padding: 15px 0; /* Better touch target */
+    letter-spacing: 1px;
+  }
+}
+
+.buy-button:hover:not(:disabled) {
+  color: #ffffff;
+  border-color: #00ff95;
+}
+
+/* Mobile touch states */
+@media (max-width: 768px) {
+  .buy-button:active:not(:disabled) {
+    color: #ffffff;
+    border-color: #00ff95;
+    transform: scale(0.98);
+  }
+}
+
+.buy-button:disabled {
+  border-color: #333;
+  color: #555;
+}
+
+.connect-wallet-button {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  border: 1px solid #00ff95;
+  padding: 10px 20px;
+  font-size: 14px;
+  z-index: 10;
+  background: transparent;
+  color: #00ff95;
+  cursor: pointer;
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 10, 5, 0.3);
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: bold;
+}
+
+/* Mobile wallet button */
+@media (max-width: 768px) {
+  .connect-wallet-button {
+    top: 20px;
+    right: 20px;
+    padding: 12px 16px;
+    font-size: 12px;
+    min-height: 40px; /* Better touch target */
+  }
+}
+
+.connected-wallet-info {
+  position: absolute;
+  top: 30px;
+  right: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 255, 149, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid #00ff95;
+  color: #ffffff;
+  padding: 5px 5px 5px 15px;
+  font-size: 14px;
+  z-index: 10;
+  border-radius: 5px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* Mobile wallet info */
+@media (max-width: 768px) {
+  .connected-wallet-info {
+    top: 20px;
+    right: 20px;
+    font-size: 12px;
+    padding: 8px 8px 8px 12px;
+    gap: 8px;
+  }
+}
+
+.disconnect-button {
+  background: #ff4757;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  width: 25px;
+  height: 25px;
+  font-weight: bold;
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 25px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.disconnect-button:hover {
+  background: #ff3742;
+  transform: scale(1.05);
+}
+
+/* Mobile disconnect button */
+@media (max-width: 768px) {
+  .disconnect-button {
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    font-size: 14px;
+  }
+}
+
+/* Mobile specific improvements */
+@media (max-width: 768px) {
+  /* Prevent zoom on input focus */
+  input[type="text"] {
+    font-size: 16px;
+  }
+  
+  /* Better touch scrolling */
+  .app-container {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+  
+  /* Mobile par cursor-target elements normal pointer cursor */
+  .cursor-target {
+    cursor: pointer !important;
+  }
+}
+
+/* Tablet specific */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .glass-card {
+    max-width: 380px;
+  }
+}
+
+/* Smooth transitions for step changes */
+.glass-card {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Additional hover effects for better UX */
+.step-buttons button:active {
+  transform: scale(0.98);
+}
+
+/* Better focus states for accessibility */
+.domain-input:focus {
+  border-color: #00ff95;
+  box-shadow: 0 0 0 1px rgba(0, 255, 149, 0.3);
+}
+
+button:focus {
+  outline: 2px solid rgba(0, 255, 149, 0.5);
+  outline-offset: 2px;
+}
