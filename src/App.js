@@ -428,17 +428,15 @@ function MainUI() {
               </div> 
             )}
 
-            {/* Search/Register Toggle */}
-            {userAddress && (
-              <div className="mode-toggle">
-                <button 
-                  onClick={toggleSearchMode} 
-                  className={`mode-button cursor-target ${isSearchMode ? 'search-mode' : 'register-mode'}`}
-                >
-                  {isSearchMode ? 'REGISTER MODE' : 'SEARCH MODE'}
-                </button>
-              </div>
-            )}
+            {/* Search/Register Toggle - Always visible in Step 1 */}
+            <div className="mode-toggle">
+              <button 
+                onClick={toggleSearchMode} 
+                className={`mode-button cursor-target ${isSearchMode ? 'search-mode' : 'register-mode'}`}
+              >
+                {isSearchMode ? 'REGISTER MODE' : 'SEARCH MODE'}
+              </button>
+            </div>
 
             <div className="glass-card">
               <div className="step-indicator">
