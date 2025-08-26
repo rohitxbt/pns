@@ -484,12 +484,12 @@ function MainUI() {
               
               {!isSearchMode && (
                 <button 
-                  onClick={handleNext} 
-                  className="buy-button cursor-target" 
-                  disabled={!isAvailable}
-                >
-                  NEXT
-                </button>
+  onClick={handleNext} 
+  className="cool-next-button cursor-target" 
+  disabled={!isAvailable}
+>
+  <span>NEXT</span>
+</button>
               )}
             </div>
           </>
