@@ -150,6 +150,13 @@ const PLASMA_TESTNET = {
   blockExplorerUrls: ['https://testnet.plasmascan.to'],
 };
 
+// SPEED OPTIMIZATION: Global instances (component ke bahar)
+const GLOBAL_PROVIDER = new ethers.JsonRpcProvider('https://testnet-rpc.plasma.to');
+const GLOBAL_READ_CONTRACT = new ethers.Contract(contractAddress, contractABI, GLOBAL_PROVIDER);
+
+// Domain cache for faster repeat searches
+const DOMAIN_CACHE = new Map();
+
 function MainUI() {
   const [contract, setContract] = useState(null);
   const [userAddress, setUserAddress] = useState(null);
@@ -159,8 +166,8 @@ function MainUI() {
   const [selectedTld, setSelectedTld] = useState(".xpl");
   
   // Multi-step states
-  const [currentStep, setCurrentStep] = useState(1); // 1: Search, 2: Connect Wallet, 3: Confirm Purchase
-  const [selectedDomain, setSelectedDomain] = useState(""); // Domain selected for purchase
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedDomain, setSelectedDomain] = useState("");
   
   // Search feature states
   const [isSearchMode, setIsSearchMode] = useState(false);
@@ -190,7 +197,6 @@ function MainUI() {
       return true;
     } catch (error) {
       if (error.code === 4902) {
-        // Network not added, try to add it
         return await addPlasmaNetwork();
       }
       console.error('Failed to switch to Plasma network:', error);
@@ -211,7 +217,7 @@ function MainUI() {
   const connectWallet = async () => { 
     if (typeof window.ethereum !== 'undefined') { 
       try { 
-        // First check if we're on the right network
+        // Network check optimized - only once during connection
         const isOnPlasma = await checkNetwork();
         
         if (!isOnPlasma) {
@@ -260,19 +266,40 @@ function MainUI() {
     setSelectedDomain("");
   };
   
+  // SPEED OPTIMIZATION: Improved domain checking with timeout and cache
   const checkAvailability = useCallback(async (nameToCheck, tld = selectedTld) => { 
     if (nameToCheck) { 
       try {
         const fullDomain = nameToCheck + tld;
+        
+        // Check cache first
+        if (DOMAIN_CACHE.has(fullDomain)) {
+          const cached = DOMAIN_CACHE.get(fullDomain);
+          setMessage(cached.available ? `'${fullDomain}' is available!` : `'${fullDomain}' is already taken.`);
+          setIsAvailable(cached.available);
+          return;
+        }
+        
         setMessage(`Checking '${fullDomain}'...`);
         setIsAvailable(false);
         
-        // Create a read-only provider for checking availability
-        const provider = new ethers.JsonRpcProvider('https://testnet-rpc.plasma.to');
-        const readOnlyContract = new ethers.Contract(contractAddress, contractABI, provider);
+        // Timeout promise for faster failure
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 5000)
+        );
         
-        const ownerAddress = await readOnlyContract.nameToOwner(fullDomain);
-        if (ownerAddress === ethers.ZeroAddress) {
+        // Use global contract instance
+        const contractPromise = GLOBAL_READ_CONTRACT.nameToOwner(fullDomain);
+        
+        const ownerAddress = await Promise.race([contractPromise, timeoutPromise]);
+        
+        const available = ownerAddress === ethers.ZeroAddress;
+        
+        // Cache result for 30 seconds
+        DOMAIN_CACHE.set(fullDomain, { available, timestamp: Date.now() });
+        setTimeout(() => DOMAIN_CACHE.delete(fullDomain), 30000);
+        
+        if (available) {
           setMessage(`'${fullDomain}' is available!`);
           setIsAvailable(true);
         } else {
@@ -280,37 +307,66 @@ function MainUI() {
           setIsAvailable(false);
         }
       } catch (e) {
-        setMessage("Error checking domain availability.");
-        console.error(e);
+        console.error('Domain check error:', e);
+        if (e.message === 'Request timeout') {
+          setMessage("Request timeout. Please try again.");
+        } else {
+          setMessage("Error checking domain. Please try again.");
+        }
+        setIsAvailable(false);
       }
     }
   }, [selectedTld]);
 
-  // Search domain function
+  // SPEED OPTIMIZATION: Improved search with timeout and cache
   const searchDomainOwner = useCallback(async (domainToSearch) => {
     if (domainToSearch) {
       try {
         const fullDomain = domainToSearch + searchSelectedTld;
+        
+        // Check cache first
+        if (DOMAIN_CACHE.has(fullDomain)) {
+          const cached = DOMAIN_CACHE.get(fullDomain);
+          if (cached.available) {
+            setSearchResult(`'${fullDomain}' is not registered yet.`);
+          } else {
+            setSearchResult(`'${fullDomain}' is registered.`);
+          }
+          return;
+        }
+        
         setSearchResult(`Searching '${fullDomain}'...`);
         
-        // Create a read-only provider for searching
-        const provider = new ethers.JsonRpcProvider('https://testnet-rpc.plasma.to');
-        const readOnlyContract = new ethers.Contract(contractAddress, contractABI, provider);
+        // Timeout for search
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Search timeout')), 5000)
+        );
         
-        const ownerAddress = await readOnlyContract.nameToOwner(fullDomain);
-        if (ownerAddress === ethers.ZeroAddress) {
+        const contractPromise = GLOBAL_READ_CONTRACT.nameToOwner(fullDomain);
+        const ownerAddress = await Promise.race([contractPromise, timeoutPromise]);
+        
+        // Cache result
+        const available = ownerAddress === ethers.ZeroAddress;
+        DOMAIN_CACHE.set(fullDomain, { available, timestamp: Date.now() });
+        setTimeout(() => DOMAIN_CACHE.delete(fullDomain), 30000);
+        
+        if (available) {
           setSearchResult(`'${fullDomain}' is not registered yet.`);
         } else {
           setSearchResult(`'${fullDomain}' is owned by: ${ownerAddress}`);
         }
       } catch (e) {
-        setSearchResult("Error searching domain.");
-        console.error(e);
+        console.error('Search error:', e);
+        if (e.message === 'Search timeout') {
+          setSearchResult("Search timeout. Please try again.");
+        } else {
+          setSearchResult("Error searching domain.");
+        }
       }
     }
   }, [searchSelectedTld]);
 
-  // Step 1: Domain search effect
+  // SPEED OPTIMIZATION: Reduced debounce from 500ms to 150ms
   useEffect(() => { 
     const handler = setTimeout(() => { 
       if (currentStep === 1 && !isSearchMode && domainName.length > 2) { 
@@ -319,11 +375,11 @@ function MainUI() {
         setIsAvailable(false); 
         setMessage("Enter a domain name to search."); 
       } 
-    }, 500); 
+    }, 150); // Reduced from 500ms to 150ms
     return () => clearTimeout(handler); 
   }, [domainName, checkAvailability, currentStep, isSearchMode]);
 
-  // Search effect
+  // SPEED OPTIMIZATION: Reduced search debounce
   useEffect(() => {
     const handler = setTimeout(() => {
       if (isSearchMode && searchDomain.length > 2) {
@@ -331,7 +387,7 @@ function MainUI() {
       } else if (isSearchMode && searchDomain.length <= 2) {
         setSearchResult("Enter domain name to search...");
       }
-    }, 500);
+    }, 150); // Reduced from 500ms to 150ms
     return () => clearTimeout(handler);
   }, [searchDomain, searchDomainOwner, isSearchMode]);
 
@@ -343,10 +399,11 @@ function MainUI() {
     }
   };
 
+  // SPEED OPTIMIZATION: Added API timeout
   const handleBuy = async () => { 
     if (contract && selectedDomain) { 
       try {
-        // Double check network before transaction
+        // Quick network check before transaction
         const isOnPlasma = await checkNetwork();
         if (!isOnPlasma) {
           setMessage("Please switch to Plasma Testnet.");
@@ -356,12 +413,14 @@ function MainUI() {
         const fullDomain = selectedDomain + selectedTld; 
         setMessage(`Registering '${fullDomain}'...`); 
         
-        // Get user address for sponsored registration
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
         const userAddress = await signer.getAddress();
         
-        // Call backend API for sponsored registration
+        // API call with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        
         const response = await fetch("https://plasma-sponsor-7jbisi2ka-rohit0x-s-projects.vercel.app/api/sponsor-registration", {
           method: "POST",
           headers: {
@@ -371,14 +430,20 @@ function MainUI() {
             domainName: fullDomain,
             userAddress: userAddress
           }),
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           const result = await response.json();
           setMessage(
             `✅ Success! '${fullDomain}' is yours.\nTx Hash: ${result.txHash}`
           );
-          // Reset to step 1 after successful purchase
+          
+          // Clear cache for registered domain
+          DOMAIN_CACHE.delete(fullDomain);
+          
           setTimeout(() => {
             setCurrentStep(1);
             setDomainName("");
@@ -392,7 +457,11 @@ function MainUI() {
 
       } catch (error) {
         console.error("Registration failed:", error);
-        setMessage("❌ Registration failed. Please try again.");
+        if (error.name === 'AbortError') {
+          setMessage("❌ Request timeout. Please try again.");
+        } else {
+          setMessage("❌ Registration failed. Please try again.");
+        }
       }
     } 
   };
@@ -416,7 +485,6 @@ function MainUI() {
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
-        // Step 1: Domain Search
         return (
           <>
             {userAddress && (
@@ -428,7 +496,6 @@ function MainUI() {
               </div> 
             )}
 
-            {/* Search/Register Toggle - Always visible in Step 1 */}
             <div className="mode-toggle">
               <button 
                 onClick={toggleSearchMode} 
@@ -484,19 +551,18 @@ function MainUI() {
               
               {!isSearchMode && (
                 <button 
-  onClick={handleNext} 
-  className="cool-next-button cursor-target" 
-  disabled={!isAvailable}
->
-  <span>NEXT</span>
-</button>
+                  onClick={handleNext} 
+                  className="cool-next-button cursor-target" 
+                  disabled={!isAvailable}
+                >
+                  <span>NEXT</span>
+                </button>
               )}
             </div>
           </>
         );
 
       case 2:
-        // Step 2: Connect Wallet
         return (
           <div className="glass-card">
             <div className="step-indicator">
@@ -525,7 +591,6 @@ function MainUI() {
         );
 
       case 3:
-        // Step 3: Confirm Purchase
         return (
           <>
             <div className="connected-wallet-info"> 
@@ -599,7 +664,6 @@ function App() {
             await video.play();
           } catch (error) {
             console.log("Video autoplay failed:", error);
-            // Mobile devices often require user interaction for video play
             if (isMobile) {
               const handleFirstTouch = () => {
                 video.play();
@@ -660,7 +724,6 @@ function App() {
         </video>
       </div>
       
-      {/* Desktop pe hi TargetCursor show karo */}
       {!isMobile && <TargetCursor spinDuration={2} hideDefaultCursor={true} />}
       
       <MainUI />
