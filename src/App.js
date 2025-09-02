@@ -421,7 +421,7 @@ function MainUI() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
         
-        const response = await fetch("plasma-sponsor-7jbisi2ka-rohit0x-s-projects.vercel.app", {
+        const response = await fetch("https://plasma-sponsor-7jbisi2ka-rohit0x-s-projects.vercel.app/api/sponsor-registration", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
