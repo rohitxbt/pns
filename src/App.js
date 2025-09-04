@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-// import TargetCursor from './TargetCursor'; // Comment this out if file doesn't exist
+import TargetCursor from './TargetCursor';
 import './App.css';
 
 const contractAddress = "0x204F374E0C13999D8DE6C15D5c691c32AAA29D49";
@@ -209,9 +209,6 @@ function MainUI() {
   const [isAvailable, setIsAvailable] = useState(false);
   const [selectedTld, setSelectedTld] = useState(".xpl");
   
-  // ADD THIS MISSING STATE
-  const [userOwnedDomain, setUserOwnedDomain] = useState(null);
-  
   // Multi-step states
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedDomain, setSelectedDomain] = useState("");
@@ -226,23 +223,6 @@ function MainUI() {
   const [searchTimer, setSearchTimer] = useState({ active: false, duration: 5 });
   const [connectTimer, setConnectTimer] = useState({ active: false, duration: 10 });
   const [registrationTimer, setRegistrationTimer] = useState({ active: false, duration: 15 });
-
-  // Function to check if user owns a domain
-  const checkUserOwnedDomain = useCallback(async (userAddr) => {
-    if (!userAddr || !contract) return;
-    
-    try {
-      const fullUserAddress = userAddr.includes('...') 
-        ? (await new ethers.BrowserProvider(window.ethereum).getSigner()).getAddress()
-        : userAddr;
-        
-      const ownedDomain = await GLOBAL_READ_CONTRACT.ownerToName(fullUserAddress);
-      setUserOwnedDomain(ownedDomain || null);
-    } catch (error) {
-      console.error('Error checking user domain:', error);
-      setUserOwnedDomain(null);
-    }
-  }, [contract]);
 
   const addPlasmaNetwork = async () => {
     try {
@@ -330,14 +310,10 @@ function MainUI() {
         const address = await signer.getAddress(); 
         const connectedContract = new ethers.Contract(contractAddress, contractABI, signer); 
         
-        const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-        setUserAddress(shortAddress); 
+        setUserAddress(`${address.substring(0, 6)}...${address.substring(address.length - 4)}`); 
         setContract(connectedContract); 
         setConnectTimer({ active: false, duration: 15 });
         setMessage("Wallet connected successfully!"); 
-        
-        // Check if user already owns a domain
-        await checkUserOwnedDomain(address);
         
         // Move to step 3 after wallet connection
         setTimeout(() => {
@@ -371,7 +347,6 @@ function MainUI() {
     setSearchDomain("");
     setCurrentStep(1);
     setSelectedDomain("");
-    setUserOwnedDomain(null); // Reset user owned domain
     // Reset all timers
     setSearchTimer({ active: false, duration: 5 });
     setConnectTimer({ active: false, duration: 10 });
@@ -559,9 +534,6 @@ function MainUI() {
             `✅ Success! '${fullDomain}' is yours.\nTx Hash: ${result.txHash}`
           );
           
-          // Update user owned domain
-          setUserOwnedDomain(fullDomain);
-          
           // Clear cache for registered domain
           DOMAIN_CACHE.delete(fullDomain);
           
@@ -619,11 +591,6 @@ function MainUI() {
             {userAddress && (
               <div className="connected-wallet-info"> 
                 <span>{userAddress}</span> 
-                {userOwnedDomain && (
-                  <span className="owned-domain-indicator">
-                    🏠 {userOwnedDomain}
-                  </span>
-                )}
                 <button onClick={disconnectWallet} className="disconnect-button cursor-target">
                   X
                 </button> 
@@ -743,11 +710,6 @@ function MainUI() {
           <>
             <div className="connected-wallet-info"> 
               <span>{userAddress}</span> 
-              {userOwnedDomain && (
-                <span className="owned-domain-indicator">
-                  🏠 {userOwnedDomain}
-                </span>
-              )}
               <button onClick={disconnectWallet} className="disconnect-button cursor-target">
                 X
               </button> 
@@ -758,14 +720,6 @@ function MainUI() {
                 <span className="step-number">3</span>
                 <span className="step-title">Confirm Purchase</span>
               </div>
-              
-              {userOwnedDomain && (
-                <div className="user-domain-error">
-                  ❌ Cannot proceed - You already own: {userOwnedDomain}
-                  <br />
-                  <small>Only one domain per user is allowed</small>
-                </div>
-              )}
               
               <Timer 
                 isActive={registrationTimer.active} 
@@ -787,13 +741,8 @@ function MainUI() {
                 <button onClick={goBackToSearch} className="back-button cursor-target">
                   BACK
                 </button>
-                <button 
-                  onClick={handleBuy} 
-                  className="buy-button cursor-target"
-                  disabled={userOwnedDomain !== null}
-                  title={userOwnedDomain ? "You already own a domain" : ""}
-                >
-                  {userOwnedDomain ? "ALREADY OWNED" : "BUY DOMAIN"}
+                <button onClick={handleBuy} className="buy-button cursor-target">
+                  BUY DOMAIN
                 </button>
               </div>
             </div>
@@ -806,38 +755,6 @@ function MainUI() {
   };
 
   return renderStepContent();
-}
-
-// Simple TargetCursor replacement (if TargetCursor component doesn't exist)
-function SimpleTargetCursor() {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const updatePosition = (e) => {
-      setPosition({ x: e.clientX, y: e.clientY });
-    };
-
-    document.addEventListener('mousemove', updatePosition);
-    return () => document.removeEventListener('mousemove', updatePosition);
-  }, []);
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        left: position.x - 10,
-        top: position.y - 10,
-        width: 20,
-        height: 20,
-        backgroundColor: '#00ff95',
-        borderRadius: '50%',
-        pointerEvents: 'none',
-        zIndex: 9999,
-        opacity: 0.8,
-        transform: 'translate(-50%, -50%)',
-      }}
-    />
-  );
 }
 
 function App() {
@@ -924,15 +841,12 @@ function App() {
             src="https://res.cloudinary.com/ds44xcm9r/video/upload/v1755953889/terminal-bg_ihc94l.mp4" 
             type="video/mp4" 
           />
-          {/* Fallback sources */}
           <source src="/terminal-bg.mp4" type="video/mp4" />
           <source src="./terminal-bg.mp4" type="video/mp4" />
         </video>
       </div>
       
-      {/* Use SimpleTargetCursor if TargetCursor component doesn't exist */}
-      {!isMobile && <SimpleTargetCursor />}
-      {/* {!isMobile && <TargetCursor spinDuration={2} hideDefaultCursor={true} />} */}
+      {!isMobile && <TargetCursor spinDuration={2} hideDefaultCursor={true} />}
       
       <MainUI />
     </div>
