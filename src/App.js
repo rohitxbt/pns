@@ -150,12 +150,56 @@ const PLASMA_TESTNET = {
   blockExplorerUrls: ['https://testnet.plasmascan.to'],
 };
 
-// SPEED OPTIMIZATION: Global instances (component ke bahar)
+// SPEED OPTIMIZATION: Global instances
 const GLOBAL_PROVIDER = new ethers.JsonRpcProvider('https://testnet-rpc.plasma.to');
 const GLOBAL_READ_CONTRACT = new ethers.Contract(contractAddress, contractABI, GLOBAL_PROVIDER);
 
 // Domain cache for faster repeat searches
 const DOMAIN_CACHE = new Map();
+
+// Timer Component
+function Timer({ isActive, duration, onComplete, label }) {
+  const [timeLeft, setTimeLeft] = useState(duration);
+
+  useEffect(() => {
+    if (!isActive) {
+      setTimeLeft(duration);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          onComplete && onComplete();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isActive, duration, onComplete]);
+
+  if (!isActive) return null;
+
+  return (
+    <div className="timer-container">
+      <div className="timer-progress">
+        <div 
+          className="timer-bar" 
+          style={{ 
+            width: `${((duration - timeLeft) / duration) * 100}%`,
+            transition: 'width 1s linear'
+          }}
+        />
+      </div>
+      <span className="timer-text">
+        {label}: {timeLeft}s
+      </span>
+    </div>
+  );
+}
 
 function MainUI() {
   const [contract, setContract] = useState(null);
@@ -175,31 +219,58 @@ function MainUI() {
   const [searchResult, setSearchResult] = useState("");
   const [searchSelectedTld, setSearchSelectedTld] = useState(".xpl");
   
+  // Timer states
+  const [searchTimer, setSearchTimer] = useState({ active: false, duration: 5 });
+  const [connectTimer, setConnectTimer] = useState({ active: false, duration: 10 });
+  const [registrationTimer, setRegistrationTimer] = useState({ active: false, duration: 15 });
+
   const addPlasmaNetwork = async () => {
     try {
+      setConnectTimer({ active: true, duration: 10 });
+      setMessage("Adding Plasma network to wallet...");
+      
       await window.ethereum.request({
         method: 'wallet_addEthereumChain',
         params: [PLASMA_TESTNET],
       });
+      
+      setConnectTimer({ active: false, duration: 10 });
+      setMessage("Plasma network added successfully!");
       return true;
     } catch (error) {
       console.error('Failed to add Plasma network:', error);
+      setConnectTimer({ active: false, duration: 10 });
+      setMessage("Failed to add network. Please add manually.");
       return false;
     }
   };
 
   const switchToPlasma = async () => {
     try {
+      setConnectTimer({ active: true, duration: 8 });
+      setMessage("Switching to Plasma Testnet...");
+      
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: PLASMA_TESTNET.chainId }],
       });
+      
+      setConnectTimer({ active: false, duration: 8 });
+      setMessage("Successfully switched to Plasma!");
       return true;
     } catch (error) {
       if (error.code === 4902) {
+        // Network not added, try to add it
         return await addPlasmaNetwork();
       }
       console.error('Failed to switch to Plasma network:', error);
+      setConnectTimer({ active: false, duration: 8 });
+      
+      if (error.code === 4001) {
+        setMessage("Network switch cancelled by user.");
+      } else {
+        setMessage("Failed to switch network. Please switch manually to Plasma Testnet.");
+      }
       return false;
     }
   };
@@ -217,25 +288,31 @@ function MainUI() {
   const connectWallet = async () => { 
     if (typeof window.ethereum !== 'undefined') { 
       try { 
-        // Network check optimized - only once during connection
+        setConnectTimer({ active: true, duration: 15 });
+        
+        // Network check
+        setMessage("Checking network...");
         const isOnPlasma = await checkNetwork();
         
         if (!isOnPlasma) {
-          setMessage("Switching to Plasma Testnet...");
           const switched = await switchToPlasma();
           if (!switched) {
-            setMessage("Please switch to Plasma Testnet manually.");
+            setConnectTimer({ active: false, duration: 15 });
             return;
           }
         }
 
+        setMessage("Connecting wallet...");
         await window.ethereum.request({ method: 'eth_requestAccounts' }); 
+        
         const provider = new ethers.BrowserProvider(window.ethereum); 
         const signer = await provider.getSigner(); 
         const address = await signer.getAddress(); 
         const connectedContract = new ethers.Contract(contractAddress, contractABI, signer); 
+        
         setUserAddress(`${address.substring(0, 6)}...${address.substring(address.length - 4)}`); 
         setContract(connectedContract); 
+        setConnectTimer({ active: false, duration: 15 });
         setMessage("Wallet connected successfully!"); 
         
         // Move to step 3 after wallet connection
@@ -245,8 +322,14 @@ function MainUI() {
         }, 1000);
         
       } catch (error) { 
-        console.error("Wallet Connection Error:", error); 
-        setMessage("Wallet connection failed."); 
+        console.error("Wallet Connection Error:", error);
+        setConnectTimer({ active: false, duration: 15 });
+        
+        if (error.code === 4001) {
+          setMessage("Wallet connection cancelled by user.");
+        } else {
+          setMessage("Wallet connection failed. Please try again.");
+        }
       } 
     } else { 
       setMessage("MetaMask is not installed."); 
@@ -264,9 +347,12 @@ function MainUI() {
     setSearchDomain("");
     setCurrentStep(1);
     setSelectedDomain("");
+    // Reset all timers
+    setSearchTimer({ active: false, duration: 5 });
+    setConnectTimer({ active: false, duration: 10 });
+    setRegistrationTimer({ active: false, duration: 15 });
   };
   
-  // SPEED OPTIMIZATION: Improved domain checking with timeout and cache
   const checkAvailability = useCallback(async (nameToCheck, tld = selectedTld) => { 
     if (nameToCheck) { 
       try {
@@ -280,17 +366,15 @@ function MainUI() {
           return;
         }
         
+        setSearchTimer({ active: true, duration: 5 });
         setMessage(`Checking '${fullDomain}'...`);
         setIsAvailable(false);
         
-        // Timeout promise for faster failure
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Request timeout')), 5000)
         );
         
-        // Use global contract instance
         const contractPromise = GLOBAL_READ_CONTRACT.nameToOwner(fullDomain);
-        
         const ownerAddress = await Promise.race([contractPromise, timeoutPromise]);
         
         const available = ownerAddress === ethers.ZeroAddress;
@@ -298,6 +382,8 @@ function MainUI() {
         // Cache result for 30 seconds
         DOMAIN_CACHE.set(fullDomain, { available, timestamp: Date.now() });
         setTimeout(() => DOMAIN_CACHE.delete(fullDomain), 30000);
+        
+        setSearchTimer({ active: false, duration: 5 });
         
         if (available) {
           setMessage(`'${fullDomain}' is available!`);
@@ -308,6 +394,8 @@ function MainUI() {
         }
       } catch (e) {
         console.error('Domain check error:', e);
+        setSearchTimer({ active: false, duration: 5 });
+        
         if (e.message === 'Request timeout') {
           setMessage("Request timeout. Please try again.");
         } else {
@@ -318,7 +406,6 @@ function MainUI() {
     }
   }, [selectedTld]);
 
-  // SPEED OPTIMIZATION: Improved search with timeout and cache
   const searchDomainOwner = useCallback(async (domainToSearch) => {
     if (domainToSearch) {
       try {
@@ -335,9 +422,9 @@ function MainUI() {
           return;
         }
         
+        setSearchTimer({ active: true, duration: 5 });
         setSearchResult(`Searching '${fullDomain}'...`);
         
-        // Timeout for search
         const timeoutPromise = new Promise((_, reject) => 
           setTimeout(() => reject(new Error('Search timeout')), 5000)
         );
@@ -350,6 +437,8 @@ function MainUI() {
         DOMAIN_CACHE.set(fullDomain, { available, timestamp: Date.now() });
         setTimeout(() => DOMAIN_CACHE.delete(fullDomain), 30000);
         
+        setSearchTimer({ active: false, duration: 5 });
+        
         if (available) {
           setSearchResult(`'${fullDomain}' is not registered yet.`);
         } else {
@@ -357,6 +446,8 @@ function MainUI() {
         }
       } catch (e) {
         console.error('Search error:', e);
+        setSearchTimer({ active: false, duration: 5 });
+        
         if (e.message === 'Search timeout') {
           setSearchResult("Search timeout. Please try again.");
         } else {
@@ -366,7 +457,6 @@ function MainUI() {
     }
   }, [searchSelectedTld]);
 
-  // SPEED OPTIMIZATION: Reduced debounce from 500ms to 150ms
   useEffect(() => { 
     const handler = setTimeout(() => { 
       if (currentStep === 1 && !isSearchMode && domainName.length > 2) { 
@@ -375,11 +465,10 @@ function MainUI() {
         setIsAvailable(false); 
         setMessage("Enter a domain name to search."); 
       } 
-    }, 150); // Reduced from 500ms to 150ms
+    }, 150);
     return () => clearTimeout(handler); 
   }, [domainName, checkAvailability, currentStep, isSearchMode]);
 
-  // SPEED OPTIMIZATION: Reduced search debounce
   useEffect(() => {
     const handler = setTimeout(() => {
       if (isSearchMode && searchDomain.length > 2) {
@@ -387,7 +476,7 @@ function MainUI() {
       } else if (isSearchMode && searchDomain.length <= 2) {
         setSearchResult("Enter domain name to search...");
       }
-    }, 150); // Reduced from 500ms to 150ms
+    }, 150);
     return () => clearTimeout(handler);
   }, [searchDomain, searchDomainOwner, isSearchMode]);
 
@@ -399,13 +488,16 @@ function MainUI() {
     }
   };
 
-  // SPEED OPTIMIZATION: Added API timeout
   const handleBuy = async () => { 
     if (contract && selectedDomain) { 
       try {
+        setRegistrationTimer({ active: true, duration: 15 });
+        
         // Quick network check before transaction
+        setMessage("Checking network...");
         const isOnPlasma = await checkNetwork();
         if (!isOnPlasma) {
+          setRegistrationTimer({ active: false, duration: 15 });
           setMessage("Please switch to Plasma Testnet.");
           return;
         }
@@ -419,7 +511,7 @@ function MainUI() {
         
         // API call with timeout
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
         
         const response = await fetch("https://plasma-api-production.up.railway.app/api/sponsor-registration", {
           method: "POST",
@@ -434,6 +526,7 @@ function MainUI() {
         });
         
         clearTimeout(timeoutId);
+        setRegistrationTimer({ active: false, duration: 15 });
         
         if (response.ok) {
           const result = await response.json();
@@ -457,6 +550,8 @@ function MainUI() {
 
       } catch (error) {
         console.error("Registration failed:", error);
+        setRegistrationTimer({ active: false, duration: 15 });
+        
         if (error.name === 'AbortError') {
           setMessage("❌ Request timeout. Please try again.");
         } else {
@@ -468,6 +563,9 @@ function MainUI() {
 
   const toggleSearchMode = () => {
     setIsSearchMode(!isSearchMode);
+    // Reset timers when switching modes
+    setSearchTimer({ active: false, duration: 5 });
+    
     if (!isSearchMode) {
       setSearchDomain("");
       setSearchResult("Enter domain name to search...");
@@ -480,6 +578,9 @@ function MainUI() {
     setCurrentStep(1);
     setSelectedDomain("");
     setMessage("Enter a domain name to search.");
+    // Reset timers
+    setConnectTimer({ active: false, duration: 10 });
+    setRegistrationTimer({ active: false, duration: 15 });
   };
 
   const renderStepContent = () => {
@@ -510,6 +611,13 @@ function MainUI() {
                 <span className="step-number">1</span>
                 <span className="step-title">Search Domain</span>
               </div>
+              
+              <Timer 
+                isActive={searchTimer.active} 
+                duration={searchTimer.duration} 
+                label={isSearchMode ? "Searching" : "Checking"}
+                onComplete={() => setSearchTimer({ active: false, duration: 5 })}
+              />
               
               <div className="input-container cursor-target">
                 <input 
@@ -570,6 +678,13 @@ function MainUI() {
               <span className="step-title">Connect Wallet</span>
             </div>
             
+            <Timer 
+              isActive={connectTimer.active} 
+              duration={connectTimer.duration} 
+              label="Connecting"
+              onComplete={() => setConnectTimer({ active: false, duration: 10 })}
+            />
+            
             <div className="domain-preview">
               <span className="domain-name">{selectedDomain}{selectedTld}</span>
               <span className="domain-status">Available ✓</span>
@@ -605,6 +720,13 @@ function MainUI() {
                 <span className="step-number">3</span>
                 <span className="step-title">Confirm Purchase</span>
               </div>
+              
+              <Timer 
+                isActive={registrationTimer.active} 
+                duration={registrationTimer.duration} 
+                label="Registering"
+                onComplete={() => setRegistrationTimer({ active: false, duration: 15 })}
+              />
               
               <div className="domain-preview large">
                 <span className="domain-name">{selectedDomain}{selectedTld}</span>
