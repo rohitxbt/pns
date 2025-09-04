@@ -710,6 +710,11 @@ function MainUI() {
           <>
             <div className="connected-wallet-info"> 
               <span>{userAddress}</span> 
+              {userOwnedDomain && (
+                <span className="owned-domain-indicator">
+                  🏠 {userOwnedDomain}
+                </span>
+              )}
               <button onClick={disconnectWallet} className="disconnect-button cursor-target">
                 X
               </button> 
@@ -720,6 +725,14 @@ function MainUI() {
                 <span className="step-number">3</span>
                 <span className="step-title">Confirm Purchase</span>
               </div>
+              
+              {userOwnedDomain && (
+                <div className="user-domain-error">
+                  ❌ Cannot proceed - You already own: {userOwnedDomain}
+                  <br />
+                  <small>Only one domain per user is allowed</small>
+                </div>
+              )}
               
               <Timer 
                 isActive={registrationTimer.active} 
@@ -741,8 +754,13 @@ function MainUI() {
                 <button onClick={goBackToSearch} className="back-button cursor-target">
                   BACK
                 </button>
-                <button onClick={handleBuy} className="buy-button cursor-target">
-                  BUY DOMAIN
+                <button 
+                  onClick={handleBuy} 
+                  className="buy-button cursor-target"
+                  disabled={userOwnedDomain !== null}
+                  title={userOwnedDomain ? "You already own a domain" : ""}
+                >
+                  {userOwnedDomain ? "ALREADY OWNED" : "BUY DOMAIN"}
                 </button>
               </div>
             </div>
